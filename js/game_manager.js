@@ -1,8 +1,100 @@
+function GameMachineLearning(gridSize) {
+  // this.storageManager = new StorageManager;
+ // BiggestNumberX	BiggestNumberY	SecondBiggestNumberX	SecondBiggestNumberY	TilesCount	FreePlacesCount	BiggestNumber	HasBottomMerger	HasLeftMerger	HasRightMerger	MoveToSide
+  // this.inputManager.on("move", this.move.bind(this));
+  this.size = gridSize;
+  this.tilesCount = 0;
+}
+
+GameMachineLearning.prototype.extractFeatures = function (grid) {
+  var biggestNumber = this.getBiggestTile(grid);
+  var secondBiggestNumber = this.getSecondBiggestTile(grid, biggestNumber);
+  var FreePlacesCount = 16 - this.tilesCount;
+  var mergers = this.getMergers(grid);
+  console.log(mergers);
+  // console.log(biggestNumber.value + '|' + secondBiggestNumber.value);
+};
+
+GameMachineLearning.prototype.getBiggestTile = function (grid) {
+  var biggestTile = undefined;
+  this.tilesCount = 0;
+
+  grid.cells.forEach(function (row) {
+      row.forEach(function (cell) {
+        if (cell) {
+          this.tilesCount++;
+          if (!biggestTile) {
+            biggestTile = cell;
+          } else if (biggestTile.value < cell.value) {
+            biggestTile = cell;
+          }
+        }
+      });
+  });
+
+  return biggestTile;
+};
+
+GameMachineLearning.prototype.getSecondBiggestTile = function (grid, biggestTile) {
+  var secondBiggestTile = undefined;
+
+  grid.cells.forEach(function (row) {
+      row.forEach(function (cell) {
+        if (cell) {
+          if (cell.x !== biggestTile.x || cell.y !== biggestTile.y) {
+            if (!secondBiggestTile) {
+              secondBiggestTile = cell;
+            } else if (secondBiggestTile.value < cell.value) {
+              secondBiggestTile = cell;
+            }
+          }
+        }
+      });
+  });
+
+  return secondBiggestTile;
+};
+
+GameMachineLearning.prototype.getMergers = function (grid) {
+  var mergers = { 
+    hasTopMerger: false,
+    hasRightMerger: false,
+    hasBottomMerger: false,
+    hasLeftMerger: false 
+  };
+
+  for (var x = 0; x < grid.cells.length; x++) {
+    for (var y = 0; y < grid.cells.length; y++) {
+      var cell = grid.cells[x][y];
+      if (cell) {
+        // var boundsTop = cell.x < 0 || cell.x
+        // TODO: Check for bounders.
+        var top = grid.cells[cell.x][cell.y - 1];
+        var right = grid.cells[cell.x + 1][cell.y];
+        var bottom = grid.cells[cell.x][cell.y + 1];
+        var left = grid.cells[cell.x - 1][cell.y];
+
+        mergers.hasTopMerger = (top && top.value === cell.value) || mergers.hasTopMerger;
+        mergers.hasRightMerger = (right && right.value === cell.value) || mergers.hasRightMerger;
+        mergers.hasBottomMerger = (bottom && bottom.value === cell.value) || mergers.hasBottomMerger;
+        mergers.hasLeftMerger = (left && left.value === cell.value) || mergers.hasLeftMerger;
+      }
+    }
+  }
+
+  return mergers;
+};
+
+GameMachineLearning.prototype.notBoundingCellOrNull = function (cell, grid) {
+  return cell.x >= this.size || cell.y >= this.size || cell.x < 0 || cell.y < 0;
+};
+
 function GameManager(size, InputManager, Actuator, StorageManager) {
-  this.size           = size; // Size of the grid
-  this.inputManager   = new InputManager;
-  this.storageManager = new StorageManager;
-  this.actuator       = new Actuator;
+  this.size             = size; // Size of the grid
+  this.inputManager     = new InputManager;
+  this.storageManager   = new StorageManager;
+  this.actuator         = new Actuator;
+  this.machineLearning  = new GameMachineLearning(this.storageManager, size);
 
   this.startTiles     = 2;
 
@@ -138,9 +230,12 @@ GameManager.prototype.move = function (direction) {
   var vector     = this.getVector(direction);
   var traversals = this.buildTraversals(vector);
   var moved      = false;
-
+  
   // Save the current tile positions and remove merger information
   this.prepareTiles();
+
+  // Extracts the features from the current position.
+  this.machineLearning.extractFeatures(self.grid);
 
   // Traverse the grid in the right direction and move tiles
   traversals.x.forEach(function (x) {
