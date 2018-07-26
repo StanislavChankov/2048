@@ -1,4 +1,4 @@
-function GameMachineLearning(gridSize) {
+function GameMachineLearning(StorageManager, gridSize) {
   // this.storageManager = new StorageManager;
  // BiggestNumberX	BiggestNumberY	SecondBiggestNumberX	SecondBiggestNumberY	TilesCount	FreePlacesCount	BiggestNumber	HasBottomMerger	HasLeftMerger	HasRightMerger	MoveToSide
   // this.inputManager.on("move", this.move.bind(this));
@@ -6,11 +6,12 @@ function GameMachineLearning(gridSize) {
   this.tilesCount = 0;
 }
 
-GameMachineLearning.prototype.extractFeatures = function (grid) {
+GameMachineLearning.prototype.extractFeatures = function (grid, direction) {
   var biggestNumber = this.getBiggestTile(grid);
   var secondBiggestNumber = this.getSecondBiggestTile(grid, biggestNumber);
   var FreePlacesCount = 16 - this.tilesCount;
   var mergers = this.getMergers(grid);
+  debugger;
   console.log(mergers);
   // console.log(biggestNumber.value + '|' + secondBiggestNumber.value);
 };
@@ -18,11 +19,12 @@ GameMachineLearning.prototype.extractFeatures = function (grid) {
 GameMachineLearning.prototype.getBiggestTile = function (grid) {
   var biggestTile = undefined;
   this.tilesCount = 0;
+  var self = this; 
 
   grid.cells.forEach(function (row) {
       row.forEach(function (cell) {
         if (cell) {
-          this.tilesCount++;
+          self.tilesCount++;
           if (!biggestTile) {
             biggestTile = cell;
           } else if (biggestTile.value < cell.value) {
@@ -31,6 +33,8 @@ GameMachineLearning.prototype.getBiggestTile = function (grid) {
         }
       });
   });
+
+  this.tilesCount = self.tilesCount;
 
   return biggestTile;
 };
@@ -57,22 +61,20 @@ GameMachineLearning.prototype.getSecondBiggestTile = function (grid, biggestTile
 
 GameMachineLearning.prototype.getMergers = function (grid) {
   var mergers = { 
-    hasTopMerger: false,
-    hasRightMerger: false,
+    hasTopMerger:    false,
+    hasRightMerger:  false,
     hasBottomMerger: false,
-    hasLeftMerger: false 
+    hasLeftMerger:   false 
   };
 
   for (var x = 0; x < grid.cells.length; x++) {
     for (var y = 0; y < grid.cells.length; y++) {
       var cell = grid.cells[x][y];
       if (cell) {
-        // var boundsTop = cell.x < 0 || cell.x
-        // TODO: Check for bounders.
-        var top = grid.cells[cell.x][cell.y - 1];
-        var right = grid.cells[cell.x + 1][cell.y];
-        var bottom = grid.cells[cell.x][cell.y + 1];
-        var left = grid.cells[cell.x - 1][cell.y];
+        var top = this.notBoundingCellOrNull(cell.x, cell.y, grid, this.sideMoveOptions.topSide);// grid.cells[cell.x][cell.y - 1];
+        var right = this.notBoundingCellOrNull(cell.x, cell.y, grid, this.sideMoveOptions.rightSide);// grid.cells[cell.x + 1][cell.y];
+        var bottom = this.notBoundingCellOrNull(cell.x, cell.y, grid, this.sideMoveOptions.bottomSide);// grid.cells[cell.x][cell.y + 1];
+        var left = this.notBoundingCellOrNull(cell.x, cell.y, grid, this.sideMoveOptions.leftSide);// grid.cells[cell.x - 1][cell.y];
 
         mergers.hasTopMerger = (top && top.value === cell.value) || mergers.hasTopMerger;
         mergers.hasRightMerger = (right && right.value === cell.value) || mergers.hasRightMerger;
@@ -85,9 +87,91 @@ GameMachineLearning.prototype.getMergers = function (grid) {
   return mergers;
 };
 
-GameMachineLearning.prototype.notBoundingCellOrNull = function (cell, grid) {
-  return cell.x >= this.size || cell.y >= this.size || cell.x < 0 || cell.y < 0;
+GameMachineLearning.prototype.notBoundingCellOrNull = function (x, y, grid, sideMoveOption) {
+  //TODO: FIX - working only for neighbour cells.
+  // Should be working for the whole grid,
+  // but cells can merge only if there is no other cell with different number between them.
+  switch (sideMoveOption) {
+    case this.sideMoveOptions.topSide:
+        if (this.isAbscissaOrOrdinateBoundsGrid(y - 1)) {
+          return null;
+        }
+
+        return grid.cells[x][y - 1];
+      break;
+    case this.sideMoveOptions.rightSide:
+        if (this.isAbscissaOrOrdinateBoundsGrid(x + 1)) {
+          return null;
+        }
+
+        return grid.cells[x + 1][y];   
+      break;
+    case this.sideMoveOptions.bottomSide:
+          if (this.isAbscissaOrOrdinateBoundsGrid(y + 1)) {
+            return null;
+          }
+        
+        return grid.cells[x][y + 1];
+      break;
+    case this.sideMoveOptions.leftSide:
+          if (this.isAbscissaOrOrdinateBoundsGrid(x - 1)) {
+            return null;
+          }
+
+        return grid.cells[x - 1][y];
+      break;
+    default:
+        return null;
+      break;
+  }
+
+    // for (let i = 1; i < grid.cells.length; i++) {
+  //   switch (sideMoveOption) {
+  //     case this.sideMoveOptions.topSide:
+  //         if (!this.isAbscissaOrOrdinateBoundsGrid(y - i)) {
+  //           return grid.cells[x][y - i];
+  //         }
+  //       break;
+  //     case this.sideMoveOptions.rightSide:
+  //         if (!this.isAbscissaOrOrdinateBoundsGrid(x + i)) {
+  //           return grid.cells[x + i][y];  
+  //         }
+  //       break;
+  //     case this.sideMoveOptions.bottomSide:
+  //           if (!this.isAbscissaOrOrdinateBoundsGrid(y + i)) {
+  //             return grid.cells[x][y + i];
+  //           }
+  //       break;
+  //     case this.sideMoveOptions.leftSide:
+  //           if (!this.isAbscissaOrOrdinateBoundsGrid(x - i)) {
+  //             return grid.cells[x - i][y];
+  //           }
+  //       break;
+  //     default:
+  //         return null;
+  //       break;
+  //   }
+  // }
+
+  // return null;
 };
+
+GameMachineLearning.prototype.isAbscissaOrOrdinateBoundsGrid = function (abscissaOrOrdinate) {
+  return abscissaOrOrdinate >= this.size || abscissaOrOrdinate < 0;
+};
+
+GameMachineLearning.prototype.getTilesCount = function (grid) {
+  var tilesCount = 0;
+  grid.forEach(row => {
+
+  });
+};
+
+GameMachineLearning.prototype.sideMoveOptions = { 
+  'topSide': 'top',
+  'rightSide':'right',
+  'bottomSide': 'bottom',
+  'leftSide': 'left' };
 
 function GameManager(size, InputManager, Actuator, StorageManager) {
   this.size             = size; // Size of the grid
@@ -235,7 +319,7 @@ GameManager.prototype.move = function (direction) {
   this.prepareTiles();
 
   // Extracts the features from the current position.
-  this.machineLearning.extractFeatures(self.grid);
+  this.machineLearning.extractFeatures(self.grid, direction);
 
   // Traverse the grid in the right direction and move tiles
   traversals.x.forEach(function (x) {
