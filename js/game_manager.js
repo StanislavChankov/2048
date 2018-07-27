@@ -60,21 +60,21 @@ GameMachineLearning.prototype.getSecondBiggestTile = function (grid, biggestTile
 };
 
 GameMachineLearning.prototype.getMergers = function (grid) {
-  var mergers = { 
-    hasTopMerger:    false,
-    hasRightMerger:  false,
-    hasBottomMerger: false,
-    hasLeftMerger:   false 
-  };
-
   for (var x = 0; x < grid.cells.length; x++) {
     for (var y = 0; y < grid.cells.length; y++) {
+      var mergers = { 
+        hasTopMerger:    false,
+        hasRightMerger:  false,
+        hasBottomMerger: false,
+        hasLeftMerger:   false 
+      };
+      
       var cell = grid.cells[x][y];
       if (cell) {
-        var top = this.notBoundingCellOrNull(cell.x, cell.y, grid, this.sideMoveOptions.topSide);// grid.cells[cell.x][cell.y - 1];
-        var right = this.notBoundingCellOrNull(cell.x, cell.y, grid, this.sideMoveOptions.rightSide);// grid.cells[cell.x + 1][cell.y];
-        var bottom = this.notBoundingCellOrNull(cell.x, cell.y, grid, this.sideMoveOptions.bottomSide);// grid.cells[cell.x][cell.y + 1];
-        var left = this.notBoundingCellOrNull(cell.x, cell.y, grid, this.sideMoveOptions.leftSide);// grid.cells[cell.x - 1][cell.y];
+        var top = this.getClosestCellOrNull(cell.x, cell.y, grid, this.sideMoveOptions.topSide);// grid.cells[cell.x][cell.y - 1];
+        var right = this.getClosestCellOrNull(cell.x, cell.y, grid, this.sideMoveOptions.rightSide);// grid.cells[cell.x + 1][cell.y];
+        var bottom = this.getClosestCellOrNull(cell.x, cell.y, grid, this.sideMoveOptions.bottomSide);// grid.cells[cell.x][cell.y + 1];
+        var left = this.getClosestCellOrNull(cell.x, cell.y, grid, this.sideMoveOptions.leftSide);// grid.cells[cell.x - 1][cell.y];
 
         mergers.hasTopMerger = (top && top.value === cell.value) || mergers.hasTopMerger;
         mergers.hasRightMerger = (right && right.value === cell.value) || mergers.hasRightMerger;
@@ -87,73 +87,125 @@ GameMachineLearning.prototype.getMergers = function (grid) {
   return mergers;
 };
 
-GameMachineLearning.prototype.notBoundingCellOrNull = function (x, y, grid, sideMoveOption) {
-  //TODO: FIX - working only for neighbour cells.
-  // Should be working for the whole grid,
-  // but cells can merge only if there is no other cell with different number between them.
+GameMachineLearning.prototype.getClosestCellOrNull = function (x, y, grid, sideMoveOption) {
+  if (this.isAbscissaOrOrdinateBoundsGrid(x) || this.isAbscissaOrOrdinateBoundsGrid(y)) {
+    confirm("BUG IN game_manager.js :92!");
+  }
+
+//TODO: FIX - working only for neighbour cells.
+// Should be working for the whole grid,
+// but cells can merge only if there is no other cell with different number between them.
+// switch (sideMoveOption) {
+//   case this.sideMoveOptions.topSide:
+//       if (this.isAbscissaOrOrdinateBoundsGrid(y - 1)) {
+//         return null;
+//       }
+
+//       return grid.cells[x][y - 1];
+//     break;
+//   case this.sideMoveOptions.rightSide:
+//       if (this.isAbscissaOrOrdinateBoundsGrid(x + 1)) {
+//         return null;
+//       }
+
+//       return grid.cells[x + 1][y];   
+//     break;
+//   case this.sideMoveOptions.bottomSide:
+//         if (this.isAbscissaOrOrdinateBoundsGrid(y + 1)) {
+//           return null;
+//         }
+      
+//       return grid.cells[x][y + 1];
+//     break;
+//   case this.sideMoveOptions.leftSide:
+//         if (this.isAbscissaOrOrdinateBoundsGrid(x - 1)) {
+//           return null;
+//         }
+
+//       return grid.cells[x - 1][y];
+//     break;
+//   default:
+//       return null;
+//     break;
+// }
+
   switch (sideMoveOption) {
     case this.sideMoveOptions.topSide:
-        if (this.isAbscissaOrOrdinateBoundsGrid(y - 1)) {
-          return null;
+    case this.sideMoveOptions.bottomSide:
+        // finding top cell.
+        for (let i = 1; i < this.size; i++) {
+          // if find top bounding cell then break the array, since we cannot find cell further top.
+          if (this.isAbscissaOrOrdinateBoundsGrid(y - i)) {
+            i = this.size;
+
+            continue;
+          }
+
+          if (grid.cells[x][y - i]) {
+            return grid.cells[x][y - i];
+          }
         }
 
-        return grid.cells[x][y - 1];
+        // finding bottom cell.
+        for (let z = 0; z < this.size; z++) {
+          // if find bottom bounding cell then break the array, since we cannot find cell further bottom.
+          if (this.isAbscissaOrOrdinateBoundsGrid(y + z)) {
+            z = this.size;
+
+            continue;
+          }
+
+          if (grid.cells[x][y + z]) {
+            return grid.cells[x][y + z];
+          }
+        }
+
+        // topSide grid.cells[x][y - 1];
+        // bottomSide grid.cells[x][y + 1];
+
+        return null;
       break;
     case this.sideMoveOptions.rightSide:
-        if (this.isAbscissaOrOrdinateBoundsGrid(x + 1)) {
-          return null;
+    case this.sideMoveOptions.leftSide:
+        // finding right cell.
+        for (let i = 1; i < this.size; i++) {
+          // if find right bounding cell then break the array, since we cannot find cell further right.
+          if (this.isAbscissaOrOrdinateBoundsGrid(x + i)) {
+            i = this.size;
+
+            continue;
+          }
+
+          if (grid.cells[x + i][y]) {
+            return grid.cells[x + i][y];
+          }
         }
 
-        return grid.cells[x + 1][y];   
-      break;
-    case this.sideMoveOptions.bottomSide:
-          if (this.isAbscissaOrOrdinateBoundsGrid(y + 1)) {
-            return null;
-          }
-        
-        return grid.cells[x][y + 1];
-      break;
-    case this.sideMoveOptions.leftSide:
-          if (this.isAbscissaOrOrdinateBoundsGrid(x - 1)) {
-            return null;
+        // finding left cell.
+        for (let z = 1; z < this.size; z++) {
+          // if find left bounding cell then break the array, since we cannot find cell further left.
+          if (this.isAbscissaOrOrdinateBoundsGrid(x - z)) {
+            z = this.size;
+
+            continue;
           }
 
-        return grid.cells[x - 1][y];
+          if (grid.cells[x - z][y]) {
+            return grid.cells[x - z][y];
+          }
+        }
+
+        // rightSide grid.cells[x + 1][y];
+        // leftSide grid.cells[x - 1][y];
+
+        return null;   
       break;
     default:
         return null;
       break;
   }
 
-    // for (let i = 1; i < grid.cells.length; i++) {
-  //   switch (sideMoveOption) {
-  //     case this.sideMoveOptions.topSide:
-  //         if (!this.isAbscissaOrOrdinateBoundsGrid(y - i)) {
-  //           return grid.cells[x][y - i];
-  //         }
-  //       break;
-  //     case this.sideMoveOptions.rightSide:
-  //         if (!this.isAbscissaOrOrdinateBoundsGrid(x + i)) {
-  //           return grid.cells[x + i][y];  
-  //         }
-  //       break;
-  //     case this.sideMoveOptions.bottomSide:
-  //           if (!this.isAbscissaOrOrdinateBoundsGrid(y + i)) {
-  //             return grid.cells[x][y + i];
-  //           }
-  //       break;
-  //     case this.sideMoveOptions.leftSide:
-  //           if (!this.isAbscissaOrOrdinateBoundsGrid(x - i)) {
-  //             return grid.cells[x - i][y];
-  //           }
-  //       break;
-  //     default:
-  //         return null;
-  //       break;
-  //   }
-  // }
-
-  // return null;
+  return null;
 };
 
 GameMachineLearning.prototype.isAbscissaOrOrdinateBoundsGrid = function (abscissaOrOrdinate) {
